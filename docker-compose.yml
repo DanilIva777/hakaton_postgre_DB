@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres-db:
-    image: postgres:17
+    image: postgres:latest
     container_name: hakaton_db-postgres-db-1
     environment:
       POSTGRES_USER: postgres
@@ -12,11 +12,19 @@ services:
       - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - backups:/backups
     networks:
       - hakaton_network
+    # Скрипт для создания бэкапа при старте/рестарте контейнера
+    entrypoint: >
+      /bin/bash -c "
+        pg_dump -h localhost -U $${POSTGRES_USER} $${POSTGRES_DB} > /backups/backup_predeploy_$(date +\\%Y\\%m\\%d_\\%H\\%M\\%S).sql &&
+        /docker-entrypoint.sh postgres
+      "
 
 volumes:
   postgres_data:
+  backups:
 
 networks:
   hakaton_network:
