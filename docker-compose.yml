@@ -15,9 +15,6 @@ services:
       - backups:/backups
     networks:
       - hakaton_network
-    # Стандартный entrypoint для PostgreSQL
-    entrypoint: /docker-entrypoint.sh
-    command: postgres
 
   backup-on-deploy:
     image: postgres:latest
