@@ -15,23 +15,38 @@ services:
       - backups:/backups
     networks:
       - hakaton_network
+    # Стандартный entrypoint для PostgreSQL
+    entrypoint: /docker-entrypoint.sh
+    command: postgres
+
+  backup-on-deploy:
+    image: postgres:latest
+    container_name: hakaton_db-backup-on-deploy
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 159357
+      POSTGRES_DB: hakaton_db
+    volumes:
+      - backups:/backups
+    depends_on:
+      - postgres-db
+    networks:
+      - hakaton_network
     entrypoint: >
       /bin/bash -c "
-        # Запускаем PostgreSQL в фоновом режиме
-        /docker-entrypoint.sh postgres &
-        # Ожидаем, пока сервер станет доступен (максимум 30 секунд)
-        for i in {1..30}; do
-          if pg_isready -h localhost -U $${POSTGRES_USER}; then
+        # Ожидаем, пока PostgreSQL станет доступен (максимум 60 секунд)
+        for i in {1..60}; do
+          if pg_isready -h postgres-db -U $${POSTGRES_USER}; then
             echo 'PostgreSQL is ready';
             # Создаем бэкап
-            pg_dump -h localhost -U $${POSTGRES_USER} $${POSTGRES_DB} > /backups/backup_predeploy_$(date +\\%Y\\%m\\%d_\\%H\\%M\\%S).sql;
-            break;
+            pg_dump -h postgres-db -U $${POSTGRES_USER} $${POSTGRES_DB} > /backups/backup_predeploy_$(date +\\%Y\\%m\\%d_\\%H\\%M\\%S).sql;
+            exit 0;
           fi;
           echo 'Waiting for PostgreSQL...';
           sleep 1;
-        done
-        # Ожидаем завершения работы PostgreSQL
-        wait
+        done;
+        echo 'Error: PostgreSQL is not ready after 60 seconds';
+        exit 1
       "
 
 volumes:
