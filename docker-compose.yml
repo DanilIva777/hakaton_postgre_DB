@@ -1,47 +1,23 @@
-version: "3.8"
+version: '3.8'
+
 services:
-    node-app:
-        build:
-            dockerfile: Dockerfile
-        image: node-app:18
-        ports:
-            - "3333:3333"
-        environment:
-            - DATABASE_URL=postgres://postgres:159357@hakaton_db-postgres-db-1:5434/hakaton_db
-        networks:
-            - app-network
-        restart: unless-stopped
-
-    backup-db:
-        image: postgres:latest
-        environment:
-            - PGPASSWORD=159357
-        volumes:
-            - ./backups:/backups
-        command: >
-            bash -c "pg_dump -h hakaton_db-postgres-db-1 -p 5434 -U postgres -d hakaton_db > /backups/backup_$(date +%F_%H-%M-%S).sql"
-        networks:
-            - app-network
-        depends_on:
-            - hakaton_db-postgres-db-1
-
-    hakaton_db-postgres-db-1:
-        image: postgres:latest
-        environment:
-            - POSTGRES_USER=postgres
-            - POSTGRES_PASSWORD=159357
-            - POSTGRES_DB=hakaton_db
-        ports:
-            - "5434:5432"
-        volumes:
-            - pgdata:/var/lib/postgresql/data
-        networks:
-            - app-network
-        restart: unless-stopped
-
-networks:
-    app-network:
-        external: true
+  postgres-db:
+    image: postgres:17
+    container_name: hakaton_db-postgres-db-1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 159357
+      POSTGRES_DB: hakaton_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hakaton_network
 
 volumes:
-    pgdata:
+  postgres_data:
+
+networks:
+  hakaton_network:
+    driver: bridge
