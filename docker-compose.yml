@@ -15,11 +15,23 @@ services:
       - backups:/backups
     networks:
       - hakaton_network
-    # Скрипт для создания бэкапа при старте/рестарте контейнера
     entrypoint: >
       /bin/bash -c "
-        pg_dump -h localhost -U $${POSTGRES_USER} $${POSTGRES_DB} > /backups/backup_predeploy_$(date +\\%Y\\%m\\%d_\\%H\\%M\\%S).sql &&
-        /docker-entrypoint.sh postgres
+        # Запускаем PostgreSQL в фоновом режиме
+        /docker-entrypoint.sh postgres &
+        # Ожидаем, пока сервер станет доступен (максимум 30 секунд)
+        for i in {1..30}; do
+          if pg_isready -h localhost -U $${POSTGRES_USER}; then
+            echo 'PostgreSQL is ready';
+            # Создаем бэкап
+            pg_dump -h localhost -U $${POSTGRES_USER} $${POSTGRES_DB} > /backups/backup_predeploy_$(date +\\%Y\\%m\\%d_\\%H\\%M\\%S).sql;
+            break;
+          fi;
+          echo 'Waiting for PostgreSQL...';
+          sleep 1;
+        done
+        # Ожидаем завершения работы PostgreSQL
+        wait
       "
 
 volumes:
