@@ -17,6 +17,7 @@ services:
       - hakaton_network
 
   backup-on-deploy:
+    restart: always
     image: postgres:latest
     container_name: hakaton_db-backup-on-deploy
     environment:
